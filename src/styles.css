@@ -712,3 +712,50 @@ input:focus,select:focus{
   .family-name-editor{grid-template-columns:minmax(0,1fr) 40px 40px}
   .family-name-editor input{font-size:20px}
 }
+
+.invite-pending-card{
+  display:flex;align-items:flex-start;gap:10px;
+  margin:16px 0 2px;padding:12px 13px;
+  border:1px solid #c8e6d7;border-radius:14px;
+  background:var(--green-soft);color:var(--text);
+}
+.invite-pending-card>.material-symbols-rounded{font-size:24px;color:var(--green);flex:0 0 auto}
+.invite-pending-card strong,.invite-pending-card span{display:block}
+.invite-pending-card strong{font-size:12px;font-weight:900}
+.invite-pending-card span{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+
+.invite-banner{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  margin-bottom:15px;
+  padding:13px 14px;
+  border:1px solid #c5e5d4;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--green-soft),#fff);
+  box-shadow:0 8px 24px rgba(16,58,42,.05);
+}
+.invite-banner-icon{
+  width:38px;height:38px;border-radius:12px;
+  display:grid;place-items:center;
+  background:#fff;color:var(--green);
+  border:1px solid #d5eadf;
+}
+.invite-banner-icon .material-symbols-rounded{font-size:22px}
+.invite-banner-copy strong,.invite-banner-copy span{display:block}
+.invite-banner-copy strong{font-size:13px}
+.invite-banner-copy span{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.invite-banner>.primary{min-width:132px}
+.invite-code>div{flex-wrap:wrap}
+@media(max-width:700px){
+  .invite-banner{grid-template-columns:auto minmax(0,1fr)}
+  .invite-banner>.primary{grid-column:1/-1;width:100%}
+}
+@media(max-width:600px){
+  .invite-pending-card{margin-top:14px}
+}
+@media(prefers-color-scheme:dark){
+  .invite-banner{background:linear-gradient(135deg,#15352a,#132019);border-color:#29483a}
+  .invite-banner-icon{background:#17271f;border-color:#29483a}
+}
