@@ -858,6 +858,44 @@ input:focus,select:focus{
   min-height:38px;
   padding:6px;
 }
+.expense-period-switch{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-top:17px;
+  padding:5px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface-soft);
+}
+.expense-period-switch button{
+  min-height:38px;
+  padding:7px 10px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:850;
+}
+.expense-period-switch button.active{
+  background:var(--surface);
+  color:var(--green);
+  box-shadow:0 2px 8px rgba(16,58,42,.08);
+}
+.expense-period-meta{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  margin-top:9px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+.expense-period-meta .material-symbols-rounded{
+  font-size:16px;
+}
 .home-card-action{
   width:100%;
   min-height:44px;
