@@ -164,7 +164,7 @@ export default function Reports({space,notice}:{space:Space,notice:(message:stri
         </button>
         {filterOpen&&<div className="report-filter-panel">
           <div className="report-filter-panel-head">
-            <div><strong>Pilih rentang tanggal</strong><span>Atur tanggal mulai dan akhir untuk memfilter seluruh laporan.</span></div>
+            <div><strong>Pilih rentang tanggal</strong><span>Atur tanggal mulai dan akhir untuk memfilter pemasukan, pengeluaran, dan transaksi.</span></div>
             <button className="icon-only ghost" onClick={()=>setFilterOpen(false)} aria-label="Tutup"><Icon name="close"/></button>
           </div>
           <div className="report-filter-fields">
