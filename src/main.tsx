@@ -7,7 +7,7 @@ export const supabase=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta
 
 function App(){
  const [session,setSession]=React.useState<any>(null); const [email,setEmail]=React.useState(''); const [password,setPassword]=React.useState(''); const [loading,setLoading]=React.useState(true); const [error,setError]=React.useState('');
- React.useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)}); const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s)); return()=>subscription.unsubscribe()},[]);
+ React.useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)}); const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s)); if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); return()=>subscription.unsubscribe()},[]);
  async function signIn(){setError('');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)setError(error.message);else setSession(data.session)}
  async function signUp(){setError('');const {error}=await supabase.auth.signUp({email,password});if(error)setError(error.message);else setError('Cek email untuk verifikasi akun Rupkas.');}
  if(loading)return <main className="center">Memuat Rupkas…</main>;
