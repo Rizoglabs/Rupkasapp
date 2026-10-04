@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './family-modal-fix';
 import '@fontsource-variable/material-symbols-rounded/wght.css';
 import './styles.css';
 
