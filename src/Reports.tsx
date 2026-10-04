@@ -6,7 +6,7 @@ const money = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
 type Space = { id: string; name: string; type: 'personal' | 'family'; owner_user_id: string; status: string };
-type Period = 'month' | '3m' | '6m' | '12m';
+type Period = 'month' | '3m' | '6m' | '12m' | 'custom';
 type Tx = { id: string; type: 'income' | 'expense'; amount: number; category_id: string; transaction_date: string; transaction_time: string | null; note: string | null; status: 'confirmed' | 'voided' };
 type Cat = { id: string; name: string; type: 'income' | 'expense' };
 type Debt = { id: string; direction: 'receivable' | 'payable'; party_name: string; original_amount: number; due_date: string | null; status: string; note: string | null };
@@ -20,6 +20,17 @@ function downloadCsv(name:string,rows:Array<Array<unknown>>){const csv=rows.map(
 
 export default function Reports({space,notice}:{space:Space,notice:(message:string)=>void}){
   const [period,setPeriod]=useState<Period>('month');
+  const [customStart,setCustomStart]=useState(()=>{
+    const end=new Date(today()+'T12:00:00');
+    return isoDate(new Date(end.getFullYear(),end.getMonth(),1));
+  });
+  const [customEnd,setCustomEnd]=useState(()=>today());
+  const [draftStart,setDraftStart]=useState(()=>{
+    const end=new Date(today()+'T12:00:00');
+    return isoDate(new Date(end.getFullYear(),end.getMonth(),1));
+  });
+  const [draftEnd,setDraftEnd]=useState(()=>today());
+  const [filterOpen,setFilterOpen]=useState(false);
   const [transactions,setTransactions]=useState<Tx[]>([]);
   const [categories,setCategories]=useState<Cat[]>([]);
   const [debts,setDebts]=useState<Debt[]>([]);
@@ -28,11 +39,37 @@ export default function Reports({space,notice}:{space:Space,notice:(message:stri
   const [exporting,setExporting]=useState(false);
 
   const range=useMemo(()=>{
+    if(period==='custom')return {start:customStart,end:customEnd};
     const end=new Date(today()+'T12:00:00');
     const monthsBack=period==='month'?0:period==='3m'?2:period==='6m'?5:11;
     const start=new Date(end.getFullYear(),end.getMonth()-monthsBack,1);
     return {start:isoDate(start),end:today()};
-  },[period]);
+  },[period,customStart,customEnd]);
+
+  function openDateFilter(){
+    setDraftStart(range.start);
+    setDraftEnd(range.end);
+    setFilterOpen(true);
+  }
+
+  function applyDateFilter(){
+    if(!draftStart||!draftEnd){notice('Pilih tanggal mulai dan tanggal akhir.');return}
+    if(draftStart>draftEnd){notice('Tanggal mulai tidak boleh lebih besar dari tanggal akhir.');return}
+    setCustomStart(draftStart);
+    setCustomEnd(draftEnd);
+    setPeriod('custom');
+    setFilterOpen(false);
+  }
+
+  function resetDateFilter(){
+    const end=new Date(today()+'T12:00:00');
+    const start=isoDate(new Date(end.getFullYear(),end.getMonth(),1));
+    const endText=today();
+    setDraftStart(start);
+    setDraftEnd(endText);
+    setPeriod('month');
+    setFilterOpen(false);
+  }
 
   async function load(){
     setBusy(true);
@@ -114,10 +151,33 @@ export default function Reports({space,notice}:{space:Space,notice:(message:stri
 
   return <section className="reports-page">
     <div className="reports-head">
-      <div><span className="eyebrow">LAPORAN</span><h1>Keuangan lebih mudah dibaca.</h1><p>Ringkasan arus kas, kategori pengeluaran, tren, dan kewajiban untuk {space.name}.</p></div>
+      <div><span className="eyebrow">LAPORAN</span><h1>Keuangan lebih mudah dibaca.</h1><p>Ringkasan arus kas, kategori pengeluaran, tren, dan kewajiban untuk {space.name}.</p><div className="report-range-label"><Icon name="calendar_month"/><span>{range.start} – {range.end}</span>{period==='custom'&&<b>Custom</b>}</div></div>
       <div className="reports-actions no-print"><button className="ghost" onClick={()=>window.print()}><Icon name="print"/>Print</button><button className="ghost" onClick={exportCsv}><Icon name="download"/>CSV</button><button className="primary" disabled={exporting} onClick={()=>void exportXlsx()}><Icon name="table_view"/>{exporting?'Menyiapkan…':'XLSX'}</button></div>
     </div>
-    <div className="report-period no-print">{([['month','1 Bulan'],['3m','3 Bulan'],['6m','6 Bulan'],['12m','12 Bulan']] as Array<[Period,string]>).map(([id,label])=><button key={id} className={period===id?'active':''} onClick={()=>setPeriod(id)}>{label}</button>)}</div>
+    <div className="report-period-row no-print">
+      <div className="report-period">{([['month','1 Bulan'],['3m','3 Bulan'],['6m','6 Bulan'],['12m','12 Bulan']] as Array<[Exclude<Period,'custom'>,string]>).map(([id,label])=><button key={id} className={period===id?'active':''} onClick={()=>{setPeriod(id);setFilterOpen(false)}}>{label}</button>)}</div>
+      <div className="report-filter-shell">
+        <button className={`report-filter-button ${period==='custom'?'active':''}`} onClick={()=>filterOpen?setFilterOpen(false):openDateFilter()} aria-expanded={filterOpen}>
+          <Icon name="date_range"/>
+          <span>Filter tanggal</span>
+          <span className="report-filter-chevron">{filterOpen?'expand_less':'expand_more'}</span>
+        </button>
+        {filterOpen&&<div className="report-filter-panel">
+          <div className="report-filter-panel-head">
+            <div><strong>Pilih rentang tanggal</strong><span>Atur tanggal mulai dan akhir untuk memfilter seluruh laporan.</span></div>
+            <button className="icon-only ghost" onClick={()=>setFilterOpen(false)} aria-label="Tutup"><Icon name="close"/></button>
+          </div>
+          <div className="report-filter-fields">
+            <label><span>Dari</span><input type="date" value={draftStart} max={today()} onChange={e=>setDraftStart(e.target.value)}/></label>
+            <label><span>Sampai</span><input type="date" value={draftEnd} max={today()} onChange={e=>setDraftEnd(e.target.value)}/></label>
+          </div>
+          <div className="report-filter-actions">
+            <button className="ghost" onClick={resetDateFilter}>Reset</button>
+            <button className="primary" onClick={applyDateFilter}><Icon name="filter_alt"/>Terapkan filter</button>
+          </div>
+        </div>}
+      </div>
+    </div>
     <div className="report-stat-grid">
       <div className="report-stat"><span>Pemasukan</span><strong className="positive">{money.format(totals.income)}</strong></div>
       <div className="report-stat"><span>Pengeluaran</span><strong className="negative">{money.format(totals.expense)}</strong></div>
