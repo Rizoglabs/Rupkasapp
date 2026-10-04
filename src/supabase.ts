@@ -1,0 +1,1 @@
+import { createClient } from '@supabase/supabase-js';\nexport const db=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);\n
