@@ -17,6 +17,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://slmwoczmrplhypurkgvx.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_nEQtSpGbpYl5vt41a5QoZA_AIzI131k2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -34,6 +37,11 @@ jobs:
 
       - name: Typecheck
         run: npm run check
+
+      - name: Validate frontend environment
+        run: |
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
 
       - name: Build
         run: npm run build
