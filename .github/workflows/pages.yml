@@ -47,7 +47,7 @@ jobs:
         run: |
           curl --fail --silent --show-error \
             -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" \
-            "$VITE_SUPABASE_URL/rest/v1/" >/dev/null
+            "$VITE_SUPABASE_URL/rest/v1/categories?select=id&limit=1" >/dev/null
 
       - name: Build
         run: npm run build
