@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_SUPABASE_URL: https://slmwoczmrplhypurkgvx.supabase.co
-      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsbXdvY3ptcnBsaHlwdXJrZ3Z4IiwiaWF0IjoxNzkxMTEyMDMxLCJleHAiOjIxMDY2ODgwMzF9.lWaKkOnI0vMbmc97d9oT9mpwd-lNedPoC8D1DCEiN-Q
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_nEQtSpGbpYl5vt41a5QoZA_AIzI131k2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -41,7 +41,7 @@ jobs:
       - name: Validate frontend environment
         run: |
           test -n "$VITE_SUPABASE_URL"
-          test -n "$VITE_SUPABASE_ANON_KEY"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
 
       - name: Validate Supabase API key
         run: |
