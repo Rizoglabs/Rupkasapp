@@ -763,3 +763,28 @@ input:focus,select:focus{
 .invite-email-field{margin:12px 0 8px}
 .invite-email-field input{background:var(--surface-soft)}
 .invite-code>span b{font-weight:900;color:var(--text)}
+
+
+.captcha-box{
+  display:grid;
+  justify-items:start;
+  gap:7px;
+  margin:14px 0 4px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface-soft);
+  overflow:hidden;
+}
+.captcha-box>span{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+  font-weight:700;
+}
+@media(max-width:600px){
+  .captcha-box{padding:10px}
+}
+@media(prefers-color-scheme:dark){
+  .captcha-box{background:#101c17;border-color:var(--line)}
+}
