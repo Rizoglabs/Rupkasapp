@@ -759,3 +759,7 @@ input:focus,select:focus{
   .invite-banner{background:linear-gradient(135deg,#15352a,#132019);border-color:#29483a}
   .invite-banner-icon{background:#17271f;border-color:#29483a}
 }
+
+.invite-email-field{margin:12px 0 8px}
+.invite-email-field input{background:var(--surface-soft)}
+.invite-code>span b{font-weight:900;color:var(--text)}
