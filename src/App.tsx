@@ -3,11 +3,9 @@ import { db } from './supabase';
 import Savings from './Savings';
 import { enqueueTransaction, enqueueTransactionUpdate, flushTransactionQueue, pendingCount } from './offline';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { Turnstile } from '@marsidev/react-turnstile';
 import './styles.css';
 const money=new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
 const INVITE_STORAGE_KEY='rupkas.pending_invite';
-const TURNSTILE_SITE_KEY=(import.meta.env.VITE_TURNSTILE_SITE_KEY||'').trim();
 const TURNSTILE_SITE_KEY=(import.meta.env.VITE_TURNSTILE_SITE_KEY||'').trim();
 function Icon({name}:{name:string}){return <span className="material-symbols-rounded" aria-hidden="true">{name}</span>}
 function normalizeInvite(value:string|null|undefined){const code=(value||'').trim().toUpperCase();return /^[A-F0-9]{12}$/.test(code)?code:''}
