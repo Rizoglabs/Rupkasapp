@@ -640,6 +640,12 @@ input:focus,select:focus{
 .popover-space .status{display:inline-flex;margin-top:8px}
 .popover-divider{height:1px;background:var(--line);margin:4px 0}
 .popover-nav{display:grid;gap:2px;padding:4px}
+.popover-create-family{width:100%;min-height:40px;margin-top:9px;padding:8px 10px;border:1px solid #b9ddcb;border-radius:12px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:flex-start;gap:9px;font-size:12px;font-weight:900}
+.popover-create-family:hover{background:var(--green-soft-2);border-color:#9fcdb5}
+.popover-create-family .material-symbols-rounded{font-size:20px}
+.transactions-month-nav{display:flex;align-items:center;gap:6px}
+.transactions-month-nav strong{min-width:68px;text-align:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.transactions-month-nav .ghost{min-width:38px;min-height:38px;padding:6px}
 .popover-nav button{
   width:100%;
   border:0;background:transparent;
