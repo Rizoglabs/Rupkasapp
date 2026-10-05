@@ -386,6 +386,30 @@ input:focus,select:focus{
 }
 
 .guest-panel .two{align-items:start}
+.guest-workspace{width:min(100%,860px)}
+.guest-workspace>p.muted{max-width:720px;margin:0 0 18px}
+.guest-nav{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;margin:16px 0;border:1px solid var(--line);border-radius:15px;background:var(--surface-soft)}
+.guest-nav button{min-height:42px;display:flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:900}
+.guest-nav button.active{background:var(--surface);color:var(--green);box-shadow:0 3px 10px rgba(16,58,42,.07)}
+.guest-entry-card{padding:17px;border:1px solid var(--line);border-radius:19px;background:var(--surface-soft)}
+.guest-entry-card .panel-head{margin-bottom:2px}
+.guest-entry-card .panel-head>.material-symbols-rounded,.guest-history-panel>.panel-head>.material-symbols-rounded,.guest-budget-panel>.panel-head>.material-symbols-rounded{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:var(--green-soft);color:var(--green);font-size:21px}
+.guest-fields{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:9px;margin-top:10px}
+.guest-fields input{margin:0}
+.guest-history-panel{margin-top:14px}
+.guest-search-row{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:9px;margin:12px 0 2px}
+.guest-search-row input,.guest-search-row select{margin:0}
+.guest-budget-panel{max-width:720px;margin:0 auto}
+.guest-month-nav{display:flex;align-items:center;justify-content:center;gap:7px;margin:4px 0 12px;padding:9px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.guest-month-nav strong{min-width:76px;text-align:center;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.guest-month-nav .ghost{min-width:38px;min-height:38px;padding:6px}
+@media(max-width:720px){
+  .guest-fields{grid-template-columns:1fr}
+  .guest-search-row{grid-template-columns:1fr}
+}
+@media(prefers-color-scheme:dark){
+  .guest-entry-card{background:#101c17}
+}
 
 @media(max-width:900px){
   .top{padding:13px 16px}
