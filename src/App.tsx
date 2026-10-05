@@ -19,10 +19,13 @@ export default function App(){const [session,setSession]=useState<any>(),[ready,
   const raw=localStorage.getItem('rupkas.guest'); if(!raw)return;
   let rows:any[]=[]; try{rows=JSON.parse(raw)}catch{return}
   if(!rows.length)return;
-  const {data:cat}=await db.from('categories').select('id').eq('space_id',personalSpaceId).eq('type','expense').eq('is_active',true).order('name').limit(1).maybeSingle();
-  if(!cat?.id)return;
+  const {data:categories}=await db.from('categories').select('id,type').eq('space_id',personalSpaceId).eq('is_active',true);
+  const categoryByType={expense:(categories??[]).find((x:any)=>x.type==='expense')?.id,income:(categories??[]).find((x:any)=>x.type==='income')?.id};
   for(const r of rows){
-    const {error}=await db.rpc('create_transaction',{p_space_id:personalSpaceId,p_type:'expense',p_amount:Number(r.amount),p_category_id:cat.id,p_transaction_date:String(r.date||today()),p_transaction_time:null,p_source_text:'guest_migration',p_note:r.note||null,p_client_operation_id:r.id});
+    const type=(r.type==='income'?'income':'expense') as 'income'|'expense';
+    const categoryId=categoryByType[type];
+    if(!categoryId)return;
+    const {error}=await db.rpc('create_transaction',{p_space_id:personalSpaceId,p_type:type,p_amount:Number(r.amount),p_category_id:categoryId,p_transaction_date:String(r.date||today()),p_transaction_time:null,p_source_text:'guest_migration',p_note:[r.category,r.note].filter(Boolean).join(' · ')||null,p_client_operation_id:r.id});
     if(error)return;
   }
   localStorage.removeItem('rupkas.guest');localStorage.setItem('rupkas.guest.migrated','1');
@@ -108,5 +111,104 @@ async function browserNotice(){if(!('Notification' in window)){notice('Browser t
 async function exportXlsx(){const {data,error}=await db.functions.invoke('rupkas-export-xlsx',{body:{space_id:space.id}});if(error){notice(error.message);return}const blob=data instanceof Blob?data:new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rupkas-'+space.id+'.xlsx';a.click();URL.revokeObjectURL(a.href)}
 async function backup(){const [tx,debts,savings,bills,budgets]=await Promise.all([db.from('transactions').select('*').eq('space_id',space.id),db.from('debts').select('*').eq('space_id',space.id),db.from('savings_goals').select('*').eq('space_id',space.id),db.from('fixed_bills').select('*').eq('space_id',space.id),db.from('budgets').select('*').eq('space_id',space.id)]);const payload={schema_version:1,exported_at:new Date().toISOString(),space:{id:space.id,name:space.name,type:space.type},transactions:tx.data||[],debts:debts.data||[],savings_goals:savings.data||[],fixed_bills:bills.data||[],budgets:budgets.data||[]};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rupkas-backup-'+space.id+'.json';a.click();URL.revokeObjectURL(a.href)}
 return <section className="two"><section className="panel quick-links"><span className="eyebrow">AKSES CEPAT</span><h2>Keuangan</h2><button className="ghost wide" onClick={()=>go('savings')}><Icon name="savings"/>Buka Tabungan</button><button className="ghost wide" onClick={()=>go('family')}><Icon name="group"/>Kelola Family</button><button className="ghost wide" onClick={()=>go('debts')}><Icon name="account_balance_wallet"/>Utang & Piutang</button></section><section className="panel"><span className="eyebrow">AKUN</span><h2>{session.user.email}</h2><p className="muted">{space.name}</p><button className="ghost wide" onClick={()=>void backup()}><Icon name="backup"/>Backup JSON</button><button className="ghost wide" onClick={()=>void exportXlsx()}><Icon name="table_view"/>Export XLSX</button></section><section className="panel"><span className="eyebrow">NOTIFIKASI</span><h2>Pengingat</h2>{prefs&&<><label><input type="checkbox" checked={!!prefs.budget_warning_enabled} onChange={e=>void savePrefs({budget_warning_enabled:e.target.checked})}/> Budget mendekati batas</label><label><input type="checkbox" checked={!!prefs.budget_exceeded_enabled} onChange={e=>void savePrefs({budget_exceeded_enabled:e.target.checked})}/> Budget terlewati</label><label><input type="checkbox" checked={!!prefs.family_transaction_enabled} onChange={e=>void savePrefs({family_transaction_enabled:e.target.checked})}/> Aktivitas Family</label><label><input type="checkbox" checked={!!prefs.bill_reminder_enabled} onChange={e=>void savePrefs({bill_reminder_enabled:e.target.checked})}/> Pengingat tagihan</label></>}<button className="ghost wide" onClick={()=>void browserNotice()}><Icon name="notifications_active"/>Aktifkan notifikasi browser</button></section></section>}
-function Guest({back}:{back:()=>void}){const [rows,setRows]=useState<any[]>(()=>JSON.parse(localStorage.getItem('rupkas.guest')||'[]')),[amount,setAmount]=useState(''),[note,setNote]=useState('');function add(){const n=Number(amount.replace(/[^0-9]/g,''));if(!n)return;const r=[{id:crypto.randomUUID(),amount:n,note,date:today()},...rows];setRows(r);localStorage.setItem('rupkas.guest',JSON.stringify(r));setAmount('');setNote('')}return <main className="auth"><section className="panel guest-panel"><div className="panel-head"><div><span className="eyebrow">GUEST MODE</span><h1>Catat tanpa akun.</h1></div><button className="ghost" onClick={back}>Kembali</button></div><p className="muted">Data hanya disimpan di browser ini.</p><div className="two"><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Nominal Rp"/><input value={note} onChange={e=>setNote(e.target.value)} placeholder="Catatan"/></div><button className="primary wide" onClick={add}>Simpan lokal</button>{rows.map(r=><div className="tx" key={r.id}><div><strong>Pengeluaran</strong><span>{r.date} · {r.note||'Tanpa catatan'}</span></div><strong className="negative">-{money.format(r.amount)}</strong></div>)}</section></main>}
+function Guest({back}:{back:()=>void}){
+  type GuestType='expense'|'income';
+  type GuestRow={id:string,amount:number,note:string,category:string,date:string,type:GuestType};
+  const readRows=():GuestRow[]=>{
+    try{
+      const raw=JSON.parse(localStorage.getItem('rupkas.guest')||'[]');
+      return Array.isArray(raw)?raw.map((r:any)=>({id:String(r.id||crypto.randomUUID()),amount:Number(r.amount)||0,note:String(r.note||''),category:String(r.category||''),date:String(r.date||today()),type:r.type==='income'?'income':'expense'})).filter((r:any)=>r.amount>0):[];
+    }catch{return []}
+  };
+  const readBudget=(month:string)=>{
+    const raw=localStorage.getItem('rupkas.guest.budget.'+month);
+    const n=Number(raw);
+    return Number.isFinite(n)&&n>0?String(Math.trunc(n)):'';
+  };
+  const [rows,setRows]=useState<GuestRow[]>(readRows),[amount,setAmount]=useState(''),[note,setNote]=useState(''),[category,setCategory]=useState(''),[type,setType]=useState<GuestType>('expense'),[q,setQ]=useState(''),[filterType,setFilterType]=useState<'all'|GuestType>('all'),[view,setView]=useState<'transactions'|'budget'>('transactions'),[budgetMonth,setBudgetMonth]=useState(ym()),[budget,setBudget]=useState(()=>readBudget(ym())),[savedBudget,setSavedBudget]=useState(()=>readBudget(ym()));
+
+  useEffect(()=>{const next=readBudget(budgetMonth);setBudget(next);setSavedBudget(next)},[budgetMonth]);
+
+  function add(){
+    const n=Number(amount.replace(/[^0-9]/g,''));
+    if(!n)return;
+    const r:GuestRow={id:crypto.randomUUID(),amount:n,note:note.trim(),category:category.trim(),date:today(),type};
+    const next=[r,...rows];
+    setRows(next);
+    localStorage.setItem('rupkas.guest',JSON.stringify(next));
+    setAmount('');setNote('');setCategory('');
+  }
+
+  function saveBudget(){
+    const n=Number(budget.replace(/[^0-9]/g,''));
+    if(!Number.isFinite(n)||n<=0)return;
+    const normalized=String(Math.trunc(n));
+    localStorage.setItem('rupkas.guest.budget.'+budgetMonth,normalized);
+    setBudget(normalized);setSavedBudget(normalized);
+  }
+
+  const filtered=rows.filter(r=>filterType==='all'||r.type===filterType).filter(r=>{
+    const needle=q.trim().toLowerCase(); if(!needle)return true;
+    return r.note.toLowerCase().includes(needle)||r.category.toLowerCase().includes(needle)||r.type.includes(needle);
+  });
+  const monthLabel=new Intl.DateTimeFormat('id-ID',{month:'long',year:'numeric'}).format(new Date(budgetMonth+'-01T12:00:00'));
+
+  return <main className="auth">
+    <section className="panel guest-panel guest-workspace">
+      <div className="panel-head">
+        <div><span className="eyebrow">GUEST / LOCAL MODE</span><h1>Catat tanpa akun.</h1></div>
+        <button className="ghost" type="button" onClick={back}>Kembali</button>
+      </div>
+      <p className="muted">Semua data tersimpan lokal di browser ini. Kamu tetap bisa mencatat pemasukan, pengeluaran, mencari transaksi, dan mengatur budget bulanan tanpa login.</p>
+
+      <div className="guest-nav" role="tablist" aria-label="Navigasi guest">
+        <button type="button" className={view==='transactions'?'active':''} aria-selected={view==='transactions'} onClick={()=>setView('transactions')}><Icon name="receipt_long"/>Transaksi</button>
+        <button type="button" className={view==='budget'?'active':''} aria-selected={view==='budget'} onClick={()=>setView('budget')}><Icon name="pie_chart"/>Anggaran</button>
+      </div>
+
+      {view==='transactions'?<div className="guest-transactions-view">
+        <section className="guest-entry-card">
+          <div className="panel-head"><div><span className="eyebrow">TRANSAKSI LOKAL</span><h2>Catat transaksi</h2></div><Icon name="add_circle"/></div>
+          <div className="seg" role="tablist" aria-label="Tipe transaksi lokal">
+            <button type="button" className={type==='expense'?'active':''} aria-selected={type==='expense'} data-testid="guest-transaction-expense" onClick={()=>setType('expense')}><Icon name="trending_down"/>Pengeluaran</button>
+            <button type="button" className={type==='income'?'active':''} aria-selected={type==='income'} data-testid="guest-transaction-income" onClick={()=>setType('income')}><Icon name="trending_up"/>Pemasukan</button>
+          </div>
+          <div className="guest-fields">
+            <input aria-label="Nominal transaksi" data-testid="guest-transaction-amount" inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Nominal Rp"/>
+            <input aria-label="Kategori transaksi" value={category} onChange={e=>setCategory(e.target.value)} placeholder="Kategori (opsional)"/>
+            <input aria-label="Catatan transaksi" value={note} onChange={e=>setNote(e.target.value)} placeholder="Catatan"/>
+          </div>
+          <button className="primary wide" type="button" data-testid="guest-save-transaction" disabled={!amount} onClick={add}>{type==='income'?'Simpan pemasukan':'Simpan pengeluaran'}</button>
+        </section>
+
+        <section className="panel guest-history-panel">
+          <div className="panel-head"><div><span className="eyebrow">RIWAYAT LOKAL</span><h2>Transaksi</h2></div><Icon name="history"/></div>
+          <div className="guest-search-row">
+            <input aria-label="Cari" data-testid="guest-transaction-search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Cari transaksi, catatan, atau kategori"/>
+            <select aria-label="Filter tipe" value={filterType} onChange={e=>setFilterType(e.target.value as any)}>
+              <option value="all">Semua tipe</option><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option>
+            </select>
+          </div>
+          {filtered.length?filtered.map(r=><div className="tx" key={r.id}>
+            <div><strong>{r.category||'Tanpa kategori'}</strong><span>{r.date} · {r.type==='income'?'Pemasukan':'Pengeluaran'}{r.note?' · '+r.note:''}</span></div>
+            <strong className={r.type==='income'?'positive':'negative'}>{r.type==='income'?'+':'-'}{money.format(r.amount)}</strong>
+          </div>):<div className="empty">{q||filterType!=='all'?'Tidak ada transaksi yang cocok.':'Belum ada transaksi lokal.'}</div>}
+        </section>
+      </div>:<section className="panel guest-budget-panel">
+        <div className="panel-head"><div><span className="eyebrow">ANGGARAN BULANAN</span><h2>{monthLabel}</h2></div><Icon name="pie_chart"/></div>
+        <div className="guest-month-nav" aria-label="Navigasi bulan anggaran">
+          <button className="ghost" type="button" aria-label="Bulan sebelumnya" data-testid="guest-budget-prev" onClick={()=>setBudgetMonth(move(budgetMonth,-1))}>‹</button>
+          <strong aria-live="polite">{budgetMonth}</strong>
+          <button className="ghost" type="button" aria-label="Bulan berikutnya" data-testid="guest-budget-next" onClick={()=>setBudgetMonth(move(budgetMonth,1))}>›</button>
+        </div>
+        <label htmlFor="guest-budget-limit">Batas pengeluaran
+          <input id="guest-budget-limit" aria-label="Batas pengeluaran" data-testid="guest-budget-limit" inputMode="numeric" value={budget} onChange={e=>setBudget(e.target.value)} placeholder="5000000"/>
+        </label>
+        <button className="primary wide" type="button" data-testid="guest-budget-save" disabled={!budget} onClick={saveBudget}>Simpan anggaran</button>
+        {savedBudget&&<div className="success">Anggaran aktif untuk <strong>{monthLabel}</strong>: <strong>{money.format(Number(savedBudget))}</strong></div>}
+        <p className="small muted">Anggaran Guest tersimpan di browser ini dan terpisah dari Personal/Family Space.</p>
+      </section>}
+    </section>
+  </main>
+}
 function Stat({l,v,c}:{l:string,v:string,c?:string}){return <div className="stat"><span>{l}</span><strong className={c||''}>{v}</strong></div>}; function TxRow({row,cat}:{row:Tx,cat?:string}){return <div className="tx"><div><strong>{cat||'Kategori'}</strong><span>{row.transaction_date} · {row.note||'Tanpa catatan'}</span></div><strong className={row.type==='expense'?'negative':'positive'}>{row.type==='expense'?'-':'+'}{money.format(Number(row.amount))}</strong></div>}
