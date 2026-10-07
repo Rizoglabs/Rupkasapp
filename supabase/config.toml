@@ -11,3 +11,6 @@ additional_redirect_urls = ["http://localhost:5173"]
 
 [realtime]
 enabled = true
+
+[functions.rupkas-payment-proof]
+verify_jwt = true
