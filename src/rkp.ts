@@ -86,43 +86,64 @@ async function decryptEnvelope(envelope: JsonRecord, password: string): Promise<
 export async function createRkpBackup(space: { id: string; name: string; type: 'personal'|'family' }, state: CommercialState, password: string) {
   if (password.length < 10) throw new Error('RKP_PASSWORD_TOO_SHORT');
 
-  const { data: profile, error: profileError } = await db.from('profiles').select('rupkas_id').eq('id', (await db.auth.getUser()).data.user?.id || '').single();
+  const { data: userData } = await db.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error('AUTH_REQUIRED');
+
+  const { data: profile, error: profileError } = await db.from('profiles').select('rupkas_id').eq('id', userId).single();
   if (profileError || !profile?.rupkas_id) throw new Error('RUPKAS_ID_NOT_AVAILABLE');
+
+  const { data: savingsGoals, error: savingsGoalError } = await db
+    .from('savings_goals')
+    .select('id,name,target_amount,target_date,status')
+    .eq('space_id', space.id)
+    .order('name');
+  if (savingsGoalError) throw savingsGoalError;
+
+  const goalIds = (savingsGoals || []).map((g:any) => g.id);
+  const savingsMovementsResult = goalIds.length
+    ? await db.from('savings_movements').select('goal_id,type,amount,movement_date').in('goal_id', goalIds).order('movement_date')
+    : { data: [], error: null };
 
   const [
     { data: categories, error: categoryError },
     { data: transactions, error: transactionError },
     { data: debts, error: debtError },
-    { data: savingsGoals, error: savingsGoalError },
-    { data: savingsMovements, error: savingsMovementError },
     { data: fixedBills, error: fixedBillError },
     { data: budgets, error: budgetError },
   ] = await Promise.all([
-    db.from('categories').select('id,type,parent_id,name,is_system,is_active').eq('space_id', space.id).eq('is_active', true).order('type').order('name'),
+    db.from('categories').select('id,type,parent_id,name,is_system,is_active').eq('space_id', space.id).eq('is_active', true).order('name'),
     db.from('transactions').select('type,status,amount,currency_code,category_id,transaction_date,transaction_time,source_text,note').eq('space_id', space.id).order('transaction_date'),
     db.from('debts').select('direction,party_name,original_amount,due_date,status,note').eq('space_id', space.id).order('due_date'),
-    db.from('savings_goals').select('name,target_amount,target_date,status').eq('space_id', space.id).order('name'),
-    db.from('savings_movements').select('goal_id,type,amount,movement_date').in('goal_id', (await db.from('savings_goals').select('id').eq('space_id', space.id)).data?.map((x:any)=>x.id) || []).order('movement_date'),
     db.from('fixed_bills').select('name,default_amount,frequency,next_due_date,reminder_days_before,status,amount_type,day_of_period,category_id').eq('space_id', space.id).order('next_due_date'),
     db.from('budgets').select('period_start,period_end,limit_amount,warning_percent,name,amount,status').eq('space_id', space.id).order('period_start'),
   ]);
 
-  const firstError = [categoryError, transactionError, debtError, savingsGoalError, savingsMovementError, fixedBillError, budgetError].find(Boolean);
+  const firstError = [categoryError, transactionError, debtError, fixedBillError, budgetError, savingsMovementsResult.error].find(Boolean);
   if (firstError) throw firstError;
 
   const used = new Map<string, number>();
   const catIdToKey = new Map<string, string>();
-  const rawCategories = categories || [];
-  const portableCategories = rawCategories.map((c:any) => {
-    const parentKey = c.parent_id ? catIdToKey.get(c.parent_id) || null : null;
-    const key = categoryKey(c.type, c.name, parentKey, used);
-    catIdToKey.set(c.id, key);
-    return { key, type: c.type, name: c.name, parent_key: parentKey, is_system: !!c.is_system };
-  });
+  const pendingCategories = [...(categories || [])];
+  const portableCategories: any[] = [];
+
+  while (pendingCategories.length) {
+    const before = pendingCategories.length;
+    for (let i = pendingCategories.length - 1; i >= 0; i--) {
+      const c = pendingCategories[i];
+      const parentKey = c.parent_id ? catIdToKey.get(c.parent_id) || null : null;
+      if (c.parent_id && !parentKey) continue;
+      const key = categoryKey(c.type, c.name, parentKey, used);
+      catIdToKey.set(c.id, key);
+      portableCategories.push({ key, type: c.type, name: c.name, parent_key: parentKey, is_system: !!c.is_system });
+      pendingCategories.splice(i, 1);
+    }
+    if (pendingCategories.length === before) throw new Error('RKP_CATEGORY_GRAPH_INVALID');
+  }
 
   const goalIdToKey = new Map<string, string>();
   const portableGoals = (savingsGoals || []).map((g:any, index:number) => {
-    const key = `goal:${normalizeName(g.name)}${index ? ':'+index : ''}`;
+    const key = `goal:${normalizeName(g.name)}${index ? ':' + index : ''}`;
     goalIdToKey.set(g.id, key);
     return { key, name: g.name, target_amount: Number(g.target_amount), target_date: g.target_date, status: g.status };
   });
@@ -139,7 +160,7 @@ export async function createRkpBackup(space: { id: string; name: string; type: '
     space: { name: space.name, type: space.type },
     data: {
       categories: portableCategories,
-      transactions: (transactions || []).map((t:any, index:number) => ({
+      transactions: (transactions || []).map((t:any) => ({
         record_key: crypto.randomUUID(),
         type: t.type,
         status: t.status,
@@ -161,7 +182,7 @@ export async function createRkpBackup(space: { id: string; name: string; type: '
         note: d.note,
       })),
       savings_goals: portableGoals,
-      savings_movements: (savingsMovements || []).map((m:any) => ({
+      savings_movements: (savingsMovementsResult.data || []).map((m:any) => ({
         record_key: crypto.randomUUID(),
         goal_key: goalIdToKey.get(m.goal_id) || null,
         type: m.type,
