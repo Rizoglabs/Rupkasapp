@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRkpBackup, restoreRkpFile } from './rkp';
-import type { CommercialState } from './commercial';
+import { getCommercialState, type CommercialState } from './commercial';
 
 export default function RkpPanel({space,state,notice}:{space:{id:string,name:string,type:'personal'|'family'},state:CommercialState|null,notice:(message:string)=>void}){
   const [password,setPassword]=useState(''),[restoreFile,setRestoreFile]=useState<File|null>(null),[busy,setBusy]=useState(false);
