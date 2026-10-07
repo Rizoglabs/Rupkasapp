@@ -162,3 +162,50 @@ export async function submitPaymentProof(orderId: string, file: File) {
   if (error) throw error;
   return data as Record<string, unknown>;
 }
+
+export type DeveloperOverview = {
+  generated_at: string;
+  counts: {
+    accounts: number;
+    trial_active: number;
+    recovery: number;
+    deletion_pending: number;
+    orders_open: number;
+    support_open: number;
+  };
+  accounts: Array<Record<string, unknown>>;
+  orders: Array<Record<string, unknown>>;
+  support: Array<Record<string, unknown>>;
+};
+
+export async function getDeveloperOverview() {
+  const { data, error } = await db.rpc('rupkas_developer_overview');
+  if (error) throw error;
+  return data as DeveloperOverview;
+}
+
+export async function confirmProPayment(orderId: string) {
+  const { data, error } = await db.rpc('rupkas_developer_confirm_pro_payment', {
+    p_order_id: orderId,
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
+
+export async function rejectProPayment(orderId: string, reason?: string) {
+  const { data, error } = await db.rpc('rupkas_developer_reject_pro_payment', {
+    p_order_id: orderId,
+    p_reason: reason ?? null,
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
+
+export async function replySupportCaseAsDeveloper(caseId: string, body: string) {
+  const { data, error } = await db.rpc('rupkas_developer_reply_support_case', {
+    p_case_id: caseId,
+    p_body: body,
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
