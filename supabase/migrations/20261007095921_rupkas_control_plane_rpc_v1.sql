@@ -1,0 +1,3 @@
+-- Applied to project as migration 20261007095921_rupkas_control_plane_rpc_v1
+-- Public RPC wrappers are the controlled boundary for authenticated clients.
+-- Full canonical SQL is kept in the deployed database; this file is the source-control anchor.
