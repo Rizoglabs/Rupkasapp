@@ -209,3 +209,11 @@ export async function replySupportCaseAsDeveloper(caseId: string, body: string) 
   if (error) throw error;
   return data as Record<string, unknown>;
 }
+
+export async function getPaymentProofUrl(orderId: string) {
+  const { data, error } = await db.functions.invoke('rupkas-payment-proof-view', {
+    body: { order_id: orderId },
+  });
+  if (error) throw error;
+  return data as { signed_url: string; signed_url_expires_in: number; mime_type: string; proof_id: string };
+}
