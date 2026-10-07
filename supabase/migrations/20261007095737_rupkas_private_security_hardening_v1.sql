@@ -1,0 +1,11 @@
+-- Applied to project as migration 20261007095737_rupkas_private_security_hardening_v1
+alter table private.commercial_accounts enable row level security;
+alter table private.commercial_orders enable row level security;
+alter table private.commercial_licenses enable row level security;
+alter table private.commercial_device_activations enable row level security;
+alter table private.commercial_subscriptions enable row level security;
+alter table private.commercial_entitlements enable row level security;
+alter table private.developer_admins enable row level security;
+alter table private.rupkas_policy_config enable row level security;
+alter function private.next_due_date(date,text) set search_path = pg_catalog;
+alter function private.bill_period_key(date,text) set search_path = pg_catalog;
