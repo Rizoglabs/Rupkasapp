@@ -102,11 +102,18 @@ export async function registerCurrentDevice(appVersion = 'web') {
 
 export async function ensureCommercialSession(appVersion = 'web') {
   let state = await getCommercialState();
+
+  // Device activation is the successful activation boundary for the trial.
+  // Register the device first so a failed activation never starts the trial.
+  await registerCurrentDevice(appVersion);
+
   if (state.trial.status === 'NOT_STARTED' && state.membership.role === 'OWNER') {
     await startTrial(state.account.id);
     state = await getCommercialState(state.account.id);
+  } else {
+    state = await getCommercialState(state.account.id);
   }
-  await registerCurrentDevice(appVersion);
+
   return state;
 }
 
